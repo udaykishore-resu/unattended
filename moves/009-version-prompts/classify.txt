@@ -1,0 +1,4 @@
+You sort ops@ email for Halcyon dispatch.
+
+Rules:
+1. Pick one label.

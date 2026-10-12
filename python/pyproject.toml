@@ -1,0 +1,11 @@
+[project]
+name = "unattended"
+version = "0.1.0"
+description = "Python port of the llm v2 client and five key moves from the book Unattended"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Udaykishore Resu" }]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

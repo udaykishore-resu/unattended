@@ -1,0 +1,352 @@
+[
+ {
+  "id": "claim-000",
+  "email": "Pallet 0 arrived crushed on load HF-20000.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-001",
+  "email": "Pallet 1 arrived crushed on load HF-20001.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-002",
+  "email": "Pallet 2 arrived crushed on load HF-20002.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-003",
+  "email": "Pallet 3 arrived crushed on load HF-20003.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-004",
+  "email": "Pallet 4 arrived crushed on load HF-20004.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-005",
+  "email": "Pallet 5 arrived crushed on load HF-20005.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-006",
+  "email": "Pallet 6 arrived crushed on load HF-20006.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-007",
+  "email": "Pallet 7 arrived crushed on load HF-20007.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-008",
+  "email": "Pallet 8 arrived crushed on load HF-20008.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-009",
+  "email": "Pallet 9 arrived crushed on load HF-20009.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-010",
+  "email": "Pallet 10 arrived crushed on load HF-20010.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-011",
+  "email": "Pallet 11 arrived crushed on load HF-20011.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-012",
+  "email": "Pallet 12 arrived crushed on load HF-20012.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-013",
+  "email": "Pallet 13 arrived crushed on load HF-20013.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-014",
+  "email": "Pallet 14 arrived crushed on load HF-20014.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-015",
+  "email": "Pallet 15 arrived crushed on load HF-20015.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-016",
+  "email": "Pallet 16 arrived crushed on load HF-20016.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-017",
+  "email": "Forklift damage on HF-20931, repair quote is $1,240.",
+  "label": "damage_claim",
+  "critical": true,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-018",
+  "email": "Crate split open, carrier says repair costs $310.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "claim-019",
+  "email": "Two cartons wet on HF-30112; replacement is $95 each.",
+  "label": "damage_claim",
+  "critical": false,
+  "recorded": "damage_claim"
+ },
+ {
+  "id": "det-000",
+  "email": "Driver waited 3 hours at the dock for HF-4000.",
+  "label": "detention",
+  "critical": false,
+  "recorded": "detention"
+ },
+ {
+  "id": "det-001",
+  "email": "Driver waited 4 hours at the dock for HF-4001.",
+  "label": "detention",
+  "critical": false,
+  "recorded": "detention"
+ },
+ {
+  "id": "det-002",
+  "email": "Driver waited 5 hours at the dock for HF-4002.",
+  "label": "detention",
+  "critical": false,
+  "recorded": "detention"
+ },
+ {
+  "id": "det-003",
+  "email": "Driver waited 6 hours at the dock for HF-4003.",
+  "label": "detention",
+  "critical": false,
+  "recorded": "detention"
+ },
+ {
+  "id": "det-004",
+  "email": "Driver waited 7 hours at the dock for HF-4004.",
+  "label": "detention",
+  "critical": false,
+  "recorded": "other"
+ },
+ {
+  "id": "det-005",
+  "email": "Driver waited 8 hours at the dock for HF-4005.",
+  "label": "detention",
+  "critical": false,
+  "recorded": "detention"
+ },
+ {
+  "id": "det-006",
+  "email": "Driver waited 9 hours at the dock for HF-4006.",
+  "label": "detention",
+  "critical": false,
+  "recorded": "detention"
+ },
+ {
+  "id": "det-007",
+  "email": "Driver waited 10 hours at the dock for HF-4007.",
+  "label": "detention",
+  "critical": false,
+  "recorded": "detention"
+ },
+ {
+  "id": "det-008",
+  "email": "Driver waited 11 hours at the dock for HF-4008.",
+  "label": "detention",
+  "critical": false,
+  "recorded": "detention"
+ },
+ {
+  "id": "det-009",
+  "email": "Driver waited 12 hours at the dock for HF-4009.",
+  "label": "detention",
+  "critical": false,
+  "recorded": "detention"
+ },
+ {
+  "id": "rate-000",
+  "email": "Can you quote Dayton to Joliet, 1 trucks?",
+  "label": "rate_request",
+  "critical": false,
+  "recorded": "rate_request"
+ },
+ {
+  "id": "rate-001",
+  "email": "Can you quote Dayton to Joliet, 2 trucks?",
+  "label": "rate_request",
+  "critical": false,
+  "recorded": "rate_request"
+ },
+ {
+  "id": "rate-002",
+  "email": "Can you quote Dayton to Joliet, 3 trucks?",
+  "label": "rate_request",
+  "critical": false,
+  "recorded": "rate_request"
+ },
+ {
+  "id": "rate-003",
+  "email": "Can you quote Dayton to Joliet, 4 trucks?",
+  "label": "rate_request",
+  "critical": false,
+  "recorded": "rate_request"
+ },
+ {
+  "id": "rate-004",
+  "email": "Can you quote Dayton to Joliet, 5 trucks?",
+  "label": "rate_request",
+  "critical": false,
+  "recorded": "rate_request"
+ },
+ {
+  "id": "rate-005",
+  "email": "Can you quote Dayton to Joliet, 6 trucks?",
+  "label": "rate_request",
+  "critical": false,
+  "recorded": "rate_request"
+ },
+ {
+  "id": "rate-006",
+  "email": "Can you quote Dayton to Joliet, 7 trucks?",
+  "label": "rate_request",
+  "critical": false,
+  "recorded": "rate_request"
+ },
+ {
+  "id": "rate-007",
+  "email": "Can you quote Dayton to Joliet, 8 trucks?",
+  "label": "rate_request",
+  "critical": false,
+  "recorded": "rate_request"
+ },
+ {
+  "id": "rate-008",
+  "email": "Can you quote Dayton to Joliet, 9 trucks?",
+  "label": "rate_request",
+  "critical": false,
+  "recorded": "rate_request"
+ },
+ {
+  "id": "rate-009",
+  "email": "Can you quote Dayton to Joliet, 10 trucks?",
+  "label": "rate_request",
+  "critical": false,
+  "recorded": "rate_request"
+ },
+ {
+  "id": "other-000",
+  "email": "Newsletter issue 0",
+  "label": "other",
+  "critical": false,
+  "recorded": "other"
+ },
+ {
+  "id": "other-001",
+  "email": "Newsletter issue 1",
+  "label": "other",
+  "critical": false,
+  "recorded": "other"
+ },
+ {
+  "id": "other-002",
+  "email": "Newsletter issue 2",
+  "label": "other",
+  "critical": false,
+  "recorded": "rate_request"
+ },
+ {
+  "id": "other-003",
+  "email": "Newsletter issue 3",
+  "label": "other",
+  "critical": false,
+  "recorded": "other"
+ },
+ {
+  "id": "other-004",
+  "email": "Newsletter issue 4",
+  "label": "other",
+  "critical": false,
+  "recorded": "other"
+ },
+ {
+  "id": "other-005",
+  "email": "Newsletter issue 5",
+  "label": "other",
+  "critical": false,
+  "recorded": "other"
+ },
+ {
+  "id": "other-006",
+  "email": "Newsletter issue 6",
+  "label": "other",
+  "critical": false,
+  "recorded": "other"
+ },
+ {
+  "id": "other-007",
+  "email": "Newsletter issue 7",
+  "label": "other",
+  "critical": false,
+  "recorded": "rate_request"
+ },
+ {
+  "id": "other-008",
+  "email": "Newsletter issue 8",
+  "label": "other",
+  "critical": false,
+  "recorded": "other"
+ },
+ {
+  "id": "other-009",
+  "email": "Newsletter issue 9",
+  "label": "other",
+  "critical": false,
+  "recorded": "other"
+ }
+]
