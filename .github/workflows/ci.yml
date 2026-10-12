@@ -28,7 +28,7 @@ jobs:
       GOTOOLCHAIN: local
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: ${{ matrix.go }}
           cache-dependency-path: go.mod
@@ -61,7 +61,7 @@ jobs:
       UNATTENDED_TEST_PSQL_URL: postgres://postgres@localhost:5432/unattended_test
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache-dependency-path: go.mod
@@ -76,7 +76,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache-dependency-path: go.mod
