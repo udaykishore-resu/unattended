@@ -1,6 +1,8 @@
 package skeleton
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -36,4 +38,36 @@ func TestEveryPromptHasRulesHeader(t *testing.T) {
 	if !strings.Contains((Skeleton{Role: "r"}).System(), "Rules:") {
 		t.Fatal("missing Rules: header")
 	}
+}
+
+// The crude check from "Breaks when": every file in
+// the prompts folder must carry the "Rules:" header,
+// so a raw-string prompt that bypassed Skeleton fails
+// CI. A file without it is reported by name.
+func TestPromptFilesHaveRulesHeader(t *testing.T) {
+	files, err := filepath.Glob("testdata/prompts/*.txt")
+	if err != nil || len(files) == 0 {
+		t.Fatal("no prompt files", err)
+	}
+	for _, f := range files {
+		b, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !hasRulesHeader(string(b)) {
+			t.Errorf("%s: no \"Rules:\" header", f)
+		}
+	}
+	if hasRulesHeader("Reply with JSON only. Be nice.") {
+		t.Fatal("a raw-string prompt passed the header check")
+	}
+}
+
+func hasRulesHeader(p string) bool {
+	for _, ln := range strings.Split(p, "\n") {
+		if strings.TrimSpace(ln) == "Rules:" {
+			return true
+		}
+	}
+	return false
 }

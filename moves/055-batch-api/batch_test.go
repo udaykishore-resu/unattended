@@ -38,7 +38,7 @@ func TestMissingItemsAreFound(t *testing.T) {
 		}
 		// 16..19 never came back.
 	}
-	out, err := Collect(context.Background(), fakeBatcher{res}, "batch-1", sent)
+	out, err := Collect(context.Background(), fakeBatcher{res}, "batch-1", llm.StopEnd, sent)
 	if err != nil {
 		t.Fatal(err)
 	}

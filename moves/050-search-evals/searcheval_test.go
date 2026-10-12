@@ -18,7 +18,10 @@ func TestScore(t *testing.T) {
 	}
 	search := func(q string) []string { return results[q] }
 
-	rec5, mrr := Score(5, cases, search)
+	rec5, mrr, err := Score(5, cases, search)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if math.Abs(rec5-2.0/3) > 1e-9 {
 		t.Errorf("recall@5 = %v", rec5)
 	}
@@ -26,7 +29,7 @@ func TestScore(t *testing.T) {
 	if math.Abs(mrr-(1.25/3)) > 1e-9 {
 		t.Errorf("MRR = %v", mrr)
 	}
-	rec3, _ := Score(3, cases, search)
+	rec3, _, _ := Score(3, cases, search)
 	if math.Abs(rec3-1.0/3) > 1e-9 {
 		t.Errorf("recall@3 = %v", rec3)
 	}

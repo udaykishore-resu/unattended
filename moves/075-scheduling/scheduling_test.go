@@ -22,7 +22,7 @@ func zones(t *testing.T, names ...string) []*time.Location {
 func TestNoSlotBeforeNineInLA(t *testing.T) {
 	locs := zones(t, "America/New_York", "America/Los_Angeles")
 	la := locs[1]
-	r := Rules{Minutes: 30, Earliest: 9, Latest: 17}
+	r := Rules{Minutes: 30, Earliest: 9, Latest: 17, WithinDays: 21}
 	from := time.Date(2026, 3, 9, 8, 0, 0, 0, locs[0]) // Monday 8:00 New York
 	got := Slots(from, r, locs, 50, func(time.Time, time.Time) bool { return false })
 	if len(got) == 0 {
@@ -66,5 +66,26 @@ func TestDaylightSaving(t *testing.T) {
 	sat := time.Date(2026, 3, 7, 10, 0, 0, 0, locs[0])
 	if inHours(sat, sat.Add(time.Hour), r, locs) {
 		t.Error("Saturday accepted")
+	}
+}
+
+// Check the rules before you use them (Move 21).
+func TestValidateRules(t *testing.T) {
+	ok := Rules{Minutes: 30, Earliest: 9, Latest: 17, WithinDays: 14}
+	if err := ok.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	bad := map[string]Rules{
+		"a quick 15 read as 150": {Minutes: 150, Earliest: 9, Latest: 17, WithinDays: 14},
+		"zero length":            {Minutes: 0, Earliest: 9, Latest: 17, WithinDays: 14},
+		"starts at 5":            {Minutes: 30, Earliest: 5, Latest: 17, WithinDays: 14},
+		"ends at 21":             {Minutes: 30, Earliest: 9, Latest: 21, WithinDays: 14},
+		"inverted hours":         {Minutes: 30, Earliest: 17, Latest: 9, WithinDays: 14},
+		"window past 3 weeks":    {Minutes: 30, Earliest: 9, Latest: 17, WithinDays: 30},
+	}
+	for name, r := range bad {
+		if r.Validate() == nil {
+			t.Errorf("%s: accepted", name)
+		}
 	}
 }

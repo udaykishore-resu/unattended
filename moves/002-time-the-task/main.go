@@ -10,28 +10,45 @@ import (
 	"encoding/csv"
 	"fmt"
 	"log"
+	"maps"
 	"os"
 	"slices"
 	"strconv"
 )
 
+// The book's code starts here.
+
 func main() {
-	rows, err := csv.NewReader(os.Stdin).ReadAll()
+	in := csv.NewReader(os.Stdin)
+	in.FieldsPerRecord = -1 // allow ragged rows
+	rows, err := in.ReadAll()
 	if err != nil {
 		log.Fatal(err)
 	}
 	by := map[string][]float64{}
+	bad := 0
 	for _, r := range rows {
+		if len(r) < 2 {
+			bad++
+			continue
+		}
 		s, err := strconv.ParseFloat(r[1], 64)
 		if err != nil {
-			continue // skip the header and typos
+			bad++ // the header and typos land here
+			continue
 		}
 		by[r[0]] = append(by[r[0]], s)
 	}
-	for task, xs := range by {
+	log.Printf("skipped %d rows", bad)
+	for _, t := range slices.Sorted(maps.Keys(by)) {
+		xs := by[t]
 		slices.Sort(xs)
-		n := len(xs)
 		fmt.Printf("%-12s n=%-3d p50=%4.0fs p90=%4.0fs\n",
-			task, n, xs[n/2], xs[n*9/10])
+			t, len(xs), rank(xs, 50), rank(xs, 90))
 	}
+}
+
+func rank(xs []float64, p int) float64 {
+	k := (p*len(xs) + 99) / 100
+	return xs[k-1]
 }

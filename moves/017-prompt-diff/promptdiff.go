@@ -28,7 +28,7 @@ func report(w io.Writer, rows []Row) {
 			k = "still wrong"
 		}
 		n[k]++
-		if a != b {
+		if r.A != r.B {
 			fmt.Fprintf(w, "%s %s: %s -> %s\n",
 				k, r.ID, r.A, r.B)
 		}

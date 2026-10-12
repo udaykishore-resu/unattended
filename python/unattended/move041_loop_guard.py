@@ -15,7 +15,7 @@ from .move033_gate import ToolError
 
 
 class LoopError(Exception):
-    """loop: same call 3 times"""
+    """loop: third identical call"""
 
 
 class LoopGuard:
@@ -35,4 +35,4 @@ class LoopGuard:
         if n == 2:
             raise ToolError("repeat_call", "you already made this exact call",
                             "use the earlier result or stop")
-        raise LoopError("loop: same call 3 times")
+        raise LoopError("loop: third identical call")

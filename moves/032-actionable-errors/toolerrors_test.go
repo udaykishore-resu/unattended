@@ -1,11 +1,14 @@
 package toolerrors
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/udaykishore-resu/unattended/llm"
 )
@@ -86,5 +89,91 @@ func TestStepCap(t *testing.T) {
 		func(context.Context, llm.ToolCall) (string, error) { return "{}", nil })
 	if err == nil || err.Error() != "step cap reached" {
 		t.Fatalf("got %v", err)
+	}
+}
+
+// The raw error is logged on our side; the model
+// gets only the fixed message.
+func TestRawErrorIsLoggedNotShown(t *testing.T) {
+	var buf bytes.Buffer
+	old := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+	defer slog.SetDefault(old)
+	raw := errors.New("dial tcp db-prod-3.internal:5432: password=hunter2")
+	got := toolResult("", raw)
+	if strings.Contains(got, "db-prod") || strings.Contains(got, "hunter2") {
+		t.Fatalf("model would see: %s", got)
+	}
+	if !strings.Contains(buf.String(), "db-prod-3.internal") {
+		t.Fatalf("raw error not logged: %q", buf.String())
+	}
+	// ToolErrors are written for the model and are not logged as failures.
+	buf.Reset()
+	toolResult("", &ToolError{Code: "not_found"})
+	if buf.Len() != 0 {
+		t.Fatalf("ToolError logged: %q", buf.String())
+	}
+}
+
+// retry: true is bounded: at most tries attempts in
+// all, then the model gets the error.
+func TestRetryingIsBounded(t *testing.T) {
+	n := 0
+	rateLimited := func(context.Context, llm.ToolCall) (string, error) {
+		n++
+		return "", &ToolError{Code: "rate_limited", Retry: true,
+			Fix: "wait; the executor already retried"}
+	}
+	_, err := Retrying(rateLimited, 3, time.Millisecond)(
+		context.Background(), tc("c1", "get_load", `{}`))
+	var te *ToolError
+	if n != 3 || !errors.As(err, &te) || te.Code != "rate_limited" {
+		t.Fatalf("attempts=%d err=%v", n, err)
+	}
+	// A transient failure that clears is retried to success.
+	n = 0
+	flaky := func(context.Context, llm.ToolCall) (string, error) {
+		if n++; n < 2 {
+			return "", &ToolError{Code: "rate_limited", Retry: true}
+		}
+		return "ok", nil
+	}
+	if out, err := Retrying(flaky, 3, time.Millisecond)(context.Background(),
+		tc("c2", "get_load", `{}`)); out != "ok" || err != nil || n != 2 {
+		t.Fatalf("out=%q err=%v n=%d", out, err, n)
+	}
+}
+
+// Errors without Retry are never retried.
+func TestRetryingSkipsPermanent(t *testing.T) {
+	n := 0
+	bad := func(context.Context, llm.ToolCall) (string, error) {
+		n++
+		return "", &ToolError{Code: "invalid_load_id"}
+	}
+	Retrying(bad, 3, time.Millisecond)(context.Background(), tc("c", "get_load", `{}`))
+	raw := func(context.Context, llm.ToolCall) (string, error) {
+		n++
+		return "", errors.New("boom")
+	}
+	Retrying(raw, 3, time.Millisecond)(context.Background(), tc("c", "get_load", `{}`))
+	if n != 2 {
+		t.Fatalf("attempts = %d, want 1 each", n)
+	}
+}
+
+// The run's wall clock beats the backoff: the wait
+// ends when ctx does, with the wall-clock cause.
+func TestRetryingStopsAtTheDeadline(t *testing.T) {
+	wall := errors.New("run budget spent: wall clock")
+	ctx, cancel := context.WithTimeoutCause(context.Background(), 20*time.Millisecond, wall)
+	defer cancel()
+	slow := func(context.Context, llm.ToolCall) (string, error) {
+		return "", &ToolError{Code: "rate_limited", Retry: true}
+	}
+	start := time.Now()
+	_, err := Retrying(slow, 10, time.Second)(ctx, tc("c", "get_load", `{}`))
+	if !errors.Is(err, wall) || time.Since(start) > 500*time.Millisecond {
+		t.Fatalf("err=%v after %v", err, time.Since(start))
 	}
 }

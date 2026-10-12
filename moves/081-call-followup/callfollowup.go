@@ -5,7 +5,10 @@
 // Move 81: call recording, summary, follow-up email.
 package callfollowup
 
-import "errors"
+import (
+	"errors"
+	"slices"
+)
 
 func Start(c Call) error {
 	if !c.ConsentRecorded {
@@ -17,9 +20,14 @@ func Start(c Call) error {
 func Checks(s Summary, turns []Turn) []string {
 	var list []string
 	for _, c := range s.Commitments {
-		if !inTurn(c.Start, turns) {
+		sides := sidesAt(c.Start, turns)
+		switch {
+		case len(sides) == 0:
 			list = append(list,
 				"no turn at timestamp: "+c.What)
+		case !slices.Contains(sides, c.Who):
+			list = append(list,
+				"check who said: "+c.What)
 		}
 	}
 	for _, n := range s.Numbers {
@@ -44,7 +52,8 @@ type Call struct {
 var enqueue = func(id string) error { return nil }
 
 // Turn is one numbered transcript turn, like
-// [0412 them], spanning [Start, End) seconds.
+// [0412 them], spanning [Start, End) seconds. Side
+// ("us" or "them") comes from the phone system.
 type Turn struct {
 	Start, End int
 	Side, Text string
@@ -58,19 +67,21 @@ type Summary struct {
 	Numbers              []string
 }
 
-// Commitment is who, what, when and a start second.
+// Commitment is who ("us" or "them"), what, when and
+// a start second.
 type Commitment struct {
 	Who, What, When string
 	Start           int
 }
 
-// inTurn checks that some turn spans the claimed
-// second.
-func inTurn(sec int, turns []Turn) bool {
+// sidesAt returns the side of every turn that spans
+// the claimed second. Overlapping speech gives two.
+func sidesAt(sec int, turns []Turn) []string {
+	var out []string
 	for _, t := range turns {
 		if t.Start <= sec && sec < t.End {
-			return true
+			out = append(out, t.Side)
 		}
 	}
-	return false
+	return out
 }

@@ -38,8 +38,11 @@ func (s *Shadow) run(ctx context.Context, id string,
 	cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	cand, err := s.Cand.Complete(cctx, r)
-	// ctx, not cctx: a timeout still gets its row
-	s.Store.Save(ctx, Pair{id, live, cand, err})
+	// own deadline: a model timeout still gets its
+	// row, and a stuck store frees the slot
+	sctx, done := context.WithTimeout(ctx, 5*time.Second)
+	defer done()
+	s.Store.Save(sctx, Pair{id, live, cand, err})
 }
 
 // Pair holds the ID, both responses and the error.
@@ -49,8 +52,9 @@ type Pair struct {
 	Err        error
 }
 
-// Store is any sink with that Save method; it logs
-// its own write errors.
+// Store is any sink with that Save method. Ours
+// honors its context and logs its own write errors;
+// a Save that ignores ctx can still hold the slot.
 type Store interface {
 	Save(ctx context.Context, p Pair)
 }

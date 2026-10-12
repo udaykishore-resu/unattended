@@ -8,6 +8,8 @@ package fanout
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"slices"
 	"sync"
 
 	"github.com/udaykishore-resu/unattended/llm"
@@ -31,8 +33,8 @@ func FanOut(ctx context.Context, m llm.Model,
 		go func() {
 			defer func() { <-sem; wg.Done() }()
 			f, err := checkOne(ctx, m, l)
-			if err != nil { // raw err stays in our logs
-				f = Finding{Status: "error",
+			if err != nil || !okStatus[f.Status] {
+				f = Finding{Status: "error", // no raw err
 					Reason: "check failed"}
 			}
 			f.LoadID = l.ID // never trust the model
@@ -44,6 +46,12 @@ func FanOut(ctx context.Context, m llm.Model,
 	wg.Wait()
 	return out
 }
+
+// okStatus lists the only answers that count as a
+// result. Anything else (an empty or unknown status,
+// a decode failure, a cancelled call) becomes
+// "error", so a missing answer is never read as ok.
+var okStatus = map[string]bool{"ok": true, "at_risk": true}
 
 // Load is one pickup with its email thread.
 type Load struct{ ID, Thread string }
@@ -81,4 +89,49 @@ func clip(s string, n int) string {
 		return string(r[:n])
 	}
 	return s
+}
+
+// Unknowns lists the loads whose check failed. The
+// judge receives every finding, errors included.
+func Unknowns(fs []Finding) []string {
+	var ids []string
+	for _, f := range fs {
+		if f.Status == "error" {
+			ids = append(ids, f.LoadID)
+		}
+	}
+	slices.Sort(ids)
+	return ids
+}
+
+// Verdict is the judge's schema-bound answer: the
+// loads to call first, and the unknowns it must
+// list back.
+type Verdict struct {
+	CallFirst []string `json:"call_first"`
+	Unknown   []string `json:"unknown"`
+}
+
+// CheckVerdict is the Go check on the judge: its
+// unknown list must match the failed checks exactly,
+// and it may only rank loads we sent it. A verdict
+// that drops an unknown or invents a load is
+// rejected (repair once, then review queue).
+func CheckVerdict(fs []Finding, v Verdict) error {
+	want := Unknowns(fs)
+	got := slices.Sorted(slices.Values(v.Unknown))
+	if !slices.Equal(want, got) {
+		return fmt.Errorf("judge unknowns %v, want %v",
+			got, want)
+	}
+	sent := map[string]bool{}
+	for _, f := range fs {
+		sent[f.LoadID] = true
+	}
+	for _, id := range v.CallFirst {
+		if !sent[id] {
+			return fmt.Errorf("judge ranked unknown load %q", id)
+		}
+	}
+	return nil
 }

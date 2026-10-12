@@ -39,3 +39,33 @@ func TestChecklist(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+// Speaker attribution: the summary says "us" promised
+// detention cover, but the only turn at that second is
+// theirs. Overlapping speech: either side may match.
+func TestAttributionAndOverlap(t *testing.T) {
+	turns := []Turn{
+		{Start: 100, End: 110, Side: "them", Text: "We'll cover detention."},
+		{Start: 200, End: 215, Side: "them", Text: "Can you do Tuesday?"},
+		{Start: 205, End: 212, Side: "us", Text: "Yes, Tuesday works."},
+	}
+	s := Summary{Commitments: []Commitment{
+		{Who: "us", What: "cover detention", Start: 104},
+		{Who: "us", What: "Tuesday pickup", Start: 207},
+		{Who: "them", What: "ask about Tuesday", Start: 201},
+	}}
+	want := []string{"check who said: cover detention"}
+	if got := Checks(s, turns); !slices.Equal(got, want) {
+		t.Fatalf("got %q", got)
+	}
+}
+
+// Boundaries: a turn spans [Start, End).
+func TestTurnBoundaries(t *testing.T) {
+	turns := []Turn{{Start: 10, End: 20, Side: "us"}}
+	for sec, n := range map[int]int{9: 0, 10: 1, 19: 1, 20: 0} {
+		if got := len(sidesAt(sec, turns)); got != n {
+			t.Errorf("second %d: %d turns", sec, got)
+		}
+	}
+}

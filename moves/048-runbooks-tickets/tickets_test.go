@@ -10,6 +10,7 @@ func TestTicketDoc(t *testing.T) {
 	tk := Ticket{ID: "T-881", Subject: "EDI feed stuck",
 		FirstMsg:   "Our 214s stopped arriving this morning.",
 		Resolution: "Reset the EDI connection in the partner portal, then resend the last batch from the queue.",
+		CloseCode:  "resolved",
 		Closed:     time.Date(2026, 9, 3, 0, 0, 0, 0, time.UTC)}
 	doc, ok := TicketDoc(tk)
 	if !ok {
@@ -24,11 +25,12 @@ func TestTicketDoc(t *testing.T) {
 }
 
 func TestSkips(t *testing.T) {
-	reopened := Ticket{Resolution: strings.Repeat("word ", 20), Reopened: true}
+	reopened := Ticket{Resolution: strings.Repeat("word ", 20), Reopened: true,
+		CloseCode: "resolved"}
 	if _, ok := TicketDoc(reopened); ok {
 		t.Error("reopened tickets didn't hold")
 	}
-	if _, ok := TicketDoc(Ticket{Resolution: "Fixed."}); ok {
+	if _, ok := TicketDoc(Ticket{Resolution: "Fixed.", CloseCode: "resolved"}); ok {
 		t.Error(`"Fixed." teaches nothing`)
 	}
 }

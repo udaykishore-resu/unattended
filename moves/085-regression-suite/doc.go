@@ -10,6 +10,7 @@ package regression
 import (
 	"context"
 	"encoding/json"
+	"os"
 
 	"github.com/udaykishore-resu/unattended/llm"
 )
@@ -27,13 +28,35 @@ type Case struct {
 	Recorded string `json:"recorded"`
 }
 
+// Settings are the model settings the production
+// triage worker reads. The suite reads the same file,
+// so CI grades the model and settings that ship.
+type Settings struct {
+	Model     string `json:"model"`
+	MaxTokens int    `json:"max_tokens"`
+	System    string `json:"system"`
+}
+
+// SettingsFile is the one config both sides read.
+var SettingsFile = "config/triage.json"
+
+func LoadSettings(path string) (Settings, error) {
+	var s Settings
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return s, err
+	}
+	err = json.Unmarshal(b, &s)
+	return s, err
+}
+
 // Classify is the production call under test.
 func Classify(ctx context.Context, m llm.Model,
-	email string) (string, error) {
+	s Settings, email string) (string, error) {
 	resp, err := m.Complete(ctx, llm.Request{
-		System:    "Label this ops@ email.",
+		System:    s.System,
 		Messages:  []llm.Message{{Role: "user", Content: "<email>\n" + email + "\n</email>"}},
-		MaxTokens: 50,
+		MaxTokens: s.MaxTokens,
 		Schema: json.RawMessage(`{"type":"object","properties":{"label":{"enum":` +
 			`["damage_claim","detention","rate_request","other"]}}}`),
 	})

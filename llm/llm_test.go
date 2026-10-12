@@ -86,3 +86,29 @@ func TestFakeConcurrent(t *testing.T) {
 		t.Fatalf("calls = %d", len(f.Calls))
 	}
 }
+
+// The recorded history is a deep copy: editing a sent
+// tool call's input in place does not change it.
+func TestFakeCopiesToolCallsDeep(t *testing.T) {
+	f := &llm.FakeModel{Responses: []llm.Response{{}}}
+	in := []byte(`{"load_id":"HF-90412"}`)
+	msgs := []llm.Message{{Role: "assistant",
+		ToolCalls: []llm.ToolCall{{ID: "c1", Name: "get_load", Input: in}}}}
+	f.Complete(context.Background(), llm.Request{Messages: msgs})
+	msgs[0].ToolCalls[0].Name = "set_eta"
+	in[2] = 'X'
+	got := f.Calls[0].Messages[0].ToolCalls[0]
+	if got.Name != "get_load" || string(got.Input) != `{"load_id":"HF-90412"}` {
+		t.Fatalf("recorded call changed: %s %s", got.Name, got.Input)
+	}
+}
+
+// A nil history stays nil, so tests comparing requests
+// with reflect.DeepEqual see what they sent.
+func TestFakeKeepsNilHistory(t *testing.T) {
+	f := &llm.FakeModel{Responses: []llm.Response{{}}}
+	f.Complete(context.Background(), llm.Request{})
+	if f.Calls[0].Messages != nil {
+		t.Fatalf("messages = %#v, want nil", f.Calls[0].Messages)
+	}
+}

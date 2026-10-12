@@ -10,8 +10,10 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/udaykishore-resu/unattended/llm"
+	retry "github.com/udaykishore-resu/unattended/moves/056-retry-dlq"
 )
 
 func (b Budgeted) Complete(ctx context.Context,
@@ -24,8 +26,8 @@ func (b Budgeted) Complete(ctx context.Context,
 	got := worst // panic or no usage: assume spent
 	defer func() { b.Ledger.Settle(k, worst, got) }()
 	resp, err := b.Next.Complete(ctx, r)
-	if n := Total(resp.Usage); n > 0 || err == nil {
-		got = n
+	if n := Total(resp.Usage); n > 0 {
+		got = n // zero is "unknown", not "free"
 	}
 	return resp, err
 }
@@ -50,13 +52,19 @@ type Budgeted struct {
 }
 
 // ErrBudget: the key has no limit, or the worst
-// case won't fit.
+// case won't fit. Reserve returns it wrapped in
+// Move 56's Permanent, so the retry layer stops at
+// once; errors.Is(err, ErrBudget) still holds.
 var ErrBudget = errors.New("token budget spent")
 
-// Ledger is a mutex and two maps, used and limit.
+// Ledger is a mutex and two maps, used and limit,
+// plus the business day the counters belong to.
+// It guards one process only: each replica holds its
+// own counters (see TestReplicasEachGetAFullBudget).
 type Ledger struct {
 	mu          sync.Mutex
 	used, limit map[string]int
+	day         string
 }
 
 func NewLedger(limits map[string]int) *Ledger {
@@ -72,7 +80,8 @@ func (l *Ledger) Reserve(k string, n int) error {
 	defer l.mu.Unlock()
 	lim, ok := l.limit[k]
 	if !ok || l.used[k]+n > lim {
-		return fmt.Errorf("%w: %s", ErrBudget, k)
+		return retry.Permanent{
+			Err: fmt.Errorf("%w: %s", ErrBudget, k)}
 	}
 	l.used[k] += n
 	return nil
@@ -82,7 +91,28 @@ func (l *Ledger) Reserve(k string, n int) error {
 func (l *Ledger) Settle(k string, reserved, got int) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.used[k] += got - reserved
+	// Floor at zero: a reservation made before Roll
+	// settles after it.
+	l.used[k] = max(0, l.used[k]+got-reserved)
+}
+
+// Roll zeroes the counters when the business day
+// changes. Call it before Reserve with the current
+// time; loc is the business time zone from config,
+// not UTC. It returns true when it reset.
+func (l *Ledger) Roll(now time.Time, loc *time.Location) bool {
+	day := now.In(loc).Format(time.DateOnly)
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if day == l.day {
+		return false
+	}
+	reset := l.day != ""
+	l.day = day
+	if reset {
+		clear(l.used)
+	}
+	return reset
 }
 
 // Used reports spend so far for a key.

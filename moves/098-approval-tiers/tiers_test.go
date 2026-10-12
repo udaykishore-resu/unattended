@@ -9,8 +9,10 @@ func TestTierFor(t *testing.T) {
 		want Tier
 	}{
 		{"internal note", Action{Tool: "add_note", Reversible: true}, Auto},
-		{"email to dispatch channel", Action{Tool: "send_email", Reversible: false}, Review},
-		{"same tool to a shipper", Action{Tool: "send_email", Outside: 1}, Review},
+		{"set_status delayed", Action{Tool: "set_status", Reversible: true}, Auto},
+		// delivered emails the shipper and starts billing
+		{"set_status delivered", Action{Tool: "set_status", Outside: 1}, Review},
+		{"any email: you cannot unsend", Action{Tool: "send_email"}, Review},
 		{"refund", Action{Tool: "refund", Cents: 190_000, Reversible: true}, TwoKey},
 		{"$4,999 refund still moves money", Action{Tool: "refund", Cents: 499_900}, TwoKey},
 		{"over $5,000", Action{Tool: "refund", Cents: 570_000}, Never},

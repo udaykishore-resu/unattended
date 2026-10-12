@@ -1,0 +1,5 @@
+{
+ "model": "small",
+ "max_tokens": 50,
+ "system": "Label this ops@ email."
+}

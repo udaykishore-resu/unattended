@@ -21,6 +21,8 @@ type Item struct {
 func Check(it Item, roster map[string]bool,
 	notes string) string {
 	switch {
+	case flat(it.Quote) == "":
+		return "no quote"
 	case !roster[it.Owner]:
 		return "owner not on roster"
 	case !strings.Contains(flat(notes), flat(it.Quote)):

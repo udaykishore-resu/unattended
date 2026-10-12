@@ -55,13 +55,13 @@ func tally(t testing.TB, cs []Case) (total, right map[string]int) {
 	for label := range floors {
 		total[label] = 0 // a label with no cases scores zero
 	}
-	f := &llm.FakeModel{}
-	for _, c := range cs {
-		f.Responses = append(f.Responses, llm.Response{
-			Text: `{"label":"` + c.Recorded + `"}`})
+	s, err := LoadSettings(SettingsFile)
+	if err != nil {
+		t.Fatal(err)
 	}
+	m := newModel(s, cs)
 	for _, c := range cs {
-		got, err := Classify(context.Background(), f, c.Email)
+		got, err := Classify(context.Background(), m, s, c.Email)
 		total[c.Label]++
 		if err == nil && got == c.Label {
 			right[c.Label]++
@@ -73,6 +73,20 @@ func tally(t testing.TB, cs []Case) (total, right map[string]int) {
 		}
 	}
 	return total, right
+}
+
+// newModel builds the model the suite grades from the
+// production settings. Offline it replays recorded
+// answers; in CI it is the production adapter factory
+// called with s.Model, so a different model can't be
+// graded by accident.
+var newModel = func(s Settings, cs []Case) llm.Model {
+	f := &llm.FakeModel{}
+	for _, c := range cs {
+		f.Responses = append(f.Responses, llm.Response{
+			Text: `{"label":"` + c.Recorded + `"}`})
+	}
+	return f
 }
 
 // The suite as CI runs it, with the variable set.

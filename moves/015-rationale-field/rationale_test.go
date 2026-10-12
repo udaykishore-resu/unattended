@@ -1,9 +1,12 @@
 package rationale
 
 import (
+	"context"
 	"encoding/json"
+	"log/slog"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"unicode/utf8"
 )
@@ -24,24 +27,78 @@ func TestNotesNeverReachDecision(t *testing.T) {
 	}
 }
 
-// The cap is in bytes; a rune split by the cut is dropped.
+// capture records the notes attribute of every record
+// that reaches notesLog, as the raw string decide
+// passed, before any handler could re-encode it.
+type capture struct {
+	mu    sync.Mutex
+	notes []string
+}
+
+func (c *capture) Enabled(context.Context, slog.Level) bool { return true }
+func (c *capture) WithAttrs([]slog.Attr) slog.Handler       { return c }
+func (c *capture) WithGroup(string) slog.Handler            { return c }
+func (c *capture) Handle(_ context.Context, r slog.Record) error {
+	r.Attrs(func(a slog.Attr) bool {
+		if a.Key == "notes" {
+			c.mu.Lock()
+			c.notes = append(c.notes, a.Value.String())
+			c.mu.Unlock()
+		}
+		return true
+	})
+	return nil
+}
+
+// The cap is in bytes. Put a 2-, 3- or 4-byte rune at
+// every offset that straddles the cut: the logged
+// notes must be valid UTF-8, at most maxNotes bytes,
+// a prefix of the original, and lose at most the one
+// rune the cut split.
 func TestNotesCapIsUTF8Safe(t *testing.T) {
-	long := strings.Repeat("a", maxNotes-1) + "é" + strings.Repeat("b", 50)
-	b, _ := json.Marshal(Verdict{Notes: long, Category: "x"})
-	var v Verdict
-	json.Unmarshal(b, &v)
-	n := v.Notes[:maxNotes]
-	capped := strings.ToValidUTF8(n, "")
-	if !utf8.ValidString(capped) || len(capped) != maxNotes-1 {
-		t.Fatalf("capped len %d valid %v", len(capped), utf8.ValidString(capped))
+	c := &capture{}
+	old := notesLog
+	notesLog = slog.New(c)
+	defer func() { notesLog = old }()
+
+	for _, r := range []string{"é", "€", "😀"} {
+		for pad := maxNotes - len(r); pad <= maxNotes; pad++ {
+			long := strings.Repeat("a", pad) + r + strings.Repeat("b", 50)
+			raw, err := json.Marshal(Verdict{Notes: long, Category: "x"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := decide(raw, "t2"); err != nil {
+				t.Fatal(err)
+			}
+			got := c.notes[len(c.notes)-1]
+			if !utf8.ValidString(got) || len(got) > maxNotes ||
+				!strings.HasPrefix(long, got) || len(got) < maxNotes-len(r)+1 {
+				t.Fatalf("rune %q pad %d: len %d valid %v",
+					r, pad, len(got), utf8.ValidString(got))
+			}
+		}
 	}
-	if _, err := decide(b, "t2"); err != nil {
+	// Short notes pass through untouched.
+	raw, _ := json.Marshal(Verdict{Notes: "naïve 😀 note"})
+	if _, err := decide(raw, "t3"); err != nil {
 		t.Fatal(err)
+	}
+	if got := c.notes[len(c.notes)-1]; got != "naïve 😀 note" {
+		t.Fatalf("short notes changed: %q", got)
+	}
+}
+
+// Until notesLog is bound to the raw-input store, notes
+// go nowhere: the default is not the general logger.
+func TestNotesDefaultToDiscard(t *testing.T) {
+	if notesLog.Handler() != slog.DiscardHandler {
+		t.Fatal("notesLog must not default to a shared handler")
 	}
 }
 
 func TestBadJSON(t *testing.T) {
-	if _, err := decide([]byte("Sure! here"), "t3"); err == nil {
+	if _, err := decide([]byte("Sure! here"), "t4"); err == nil {
 		t.Fatal("want parse error")
 	}
 }

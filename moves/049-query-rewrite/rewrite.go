@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"maps"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
@@ -22,16 +23,27 @@ type Rewrite struct {
 	Clear    bool     `json:"already_clear"`
 }
 
-// Search wraps the book's handler fragment.
-// hybrid and keywordOnly are the two searches from
-// Move 44; recent holds the last chat turns.
+// Search wraps the book's handler fragment. tenant
+// comes from the caller's session; the searches close
+// over it, and Rewrite has no field that could change
+// it, so a rewrite changes only the words searched.
+// recent holds the last chat turns.
 func Search(ctx context.Context, small llm.Model,
-	recent []string, q string) []string {
+	tenant string, recent []string, q string) []string {
+	hybrid := func(s string) []string {
+		return hybridSearch(tenant, s)
+	}
+	keywordOnly := func(s string) []string {
+		return keywordSearch(tenant, s)
+	}
 	// In the search handler. The original query is
 	// always one of the fused lists.
-	rw, err := RewriteQuery(ctx, small, recent, q)
-	if err != nil || rw.Clear || rw.Query == "" {
-		rw = Rewrite{Query: q}
+	rw := Rewrite{Query: q}
+	if needsRewrite(q) {
+		got, err := RewriteQuery(ctx, small, recent, q)
+		if err == nil && !got.Clear && got.Query != "" {
+			rw = got // whole struct, never a merge
+		}
 	}
 	kw := strings.Join(rw.Keywords, " ")
 	ids := Fuse(60, hybrid(rw.Query), hybrid(q),
@@ -39,13 +51,27 @@ func Search(ctx context.Context, small llm.Model,
 	return ids
 }
 
-// hybrid runs both keyword and vector search;
-// keywordOnly is full text only. Variables so a test
-// or caller can plug in a real index.
+// hybridSearch runs both keyword and vector search
+// (Move 44) for one tenant; keywordSearch is full
+// text only. Variables so a test or caller can plug
+// in a real index.
 var (
-	hybrid      = func(q string) []string { return nil }
-	keywordOnly = func(kw string) []string { return nil }
+	hybridSearch  = func(tenant, q string) []string { return nil }
+	keywordSearch = func(tenant, kw string) []string { return nil }
 )
+
+// idPattern matches Halcyon IDs such as PRO numbers
+// (4471-2209) and ticket IDs (T-881).
+var idPattern = regexp.MustCompile(
+	`\b(\d{4}-\d{4}|[A-Z]{1,4}-\d{2,})\b`)
+
+// needsRewrite skips the model for queries that hold
+// an ID pattern or run over eight words: those
+// already say what they mean.
+func needsRewrite(q string) bool {
+	return !idPattern.MatchString(q) &&
+		len(strings.Fields(q)) <= 8
+}
 
 var rewriteSchema = json.RawMessage(`{"type":"object",
   "required":["query","keywords","already_clear"],
@@ -82,8 +108,12 @@ func RewriteQuery(ctx context.Context, m llm.Model,
 func Fuse(k float64, lists ...[]string) []string {
 	score := map[string]float64{}
 	for _, list := range lists {
+		seen := map[string]bool{} // best rank only
 		for rank, id := range list {
-			score[id] += 1 / (k + float64(rank+1))
+			if !seen[id] {
+				seen[id] = true
+				score[id] += 1 / (k + float64(rank+1))
+			}
 		}
 	}
 	ids := slices.Collect(maps.Keys(score))

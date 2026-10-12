@@ -1,5 +1,8 @@
 // Package promptlint flags vague verbs, unfenced
-// template slots and always/never conflicts.
+// template slots, unbalanced tags and always/never
+// conflicts. It is a heuristic: a clean run means the
+// cheap patterns are absent, not that a prompt is
+// injection-safe or free of contradictions.
 //
 // Move 18: lint your prompts.
 package promptlint
@@ -11,24 +14,31 @@ import (
 	"strings"
 )
 
-var slot = regexp.MustCompile(`\{\{.*?\}\}`)
+var tok = regexp.MustCompile(
+	`</?[A-Za-z_][^<>]*>|\{\{.*?\}\}`)
 var vague = regexp.MustCompile(`(?i)\b(handle|` +
 	`process|deal with|appropriately)\b`)
 
 func Lint(p string) (out []string) {
-	inTag := false
+	depth := 0
 	for i, ln := range strings.Split(p, "\n") {
-		t := strings.TrimSpace(ln)
-		if strings.HasPrefix(t, "<") {
-			inTag = !strings.HasPrefix(t, "</")
-		}
 		at := strconv.Itoa(i+1) + ": "
-		if m := vague.FindString(t); m != "" {
+		if m := vague.FindString(ln); m != "" {
 			out = append(out, at+"vague verb "+m)
 		}
-		if slot.MatchString(t) && !inTag {
-			out = append(out, at+"unfenced variable")
+		for _, t := range tok.FindAllString(ln, -1) {
+			switch {
+			case strings.HasPrefix(t, "</"):
+				depth--
+			case t[0] == '<':
+				depth++
+			case depth <= 0:
+				out = append(out, at+"unfenced variable")
+			}
 		}
+	}
+	if depth != 0 {
+		out = append(out, "unbalanced tags")
 	}
 	return append(out, conflicts(p)...)
 }

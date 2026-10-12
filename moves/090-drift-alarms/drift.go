@@ -9,12 +9,14 @@ import (
 	"slices"
 )
 
-// PSI compares two label distributions.
-// base and now are counts per label.
-func PSI(base, now map[string]int) float64 {
+// PSI compares two label distributions; base and
+// now are counts per label. It returns false when
+// either window has fewer than minN outputs.
+func PSI(base, now map[string]int,
+	minN int) (float64, bool) {
 	nb, nn := total(base), total(now)
-	if nb == 0 || nn == 0 {
-		return 0
+	if min(nb, nn) < float64(max(minN, 1)) {
+		return 0, false // too few to tell
 	}
 	const eps = 1e-4 // avoid log(0)
 	var psi float64
@@ -23,7 +25,7 @@ func PSI(base, now map[string]int) float64 {
 		q := math.Max(float64(now[k])/nn, eps)
 		psi += (q - p) * math.Log(q/p)
 	}
-	return psi
+	return psi, true
 }
 
 // total sums the counts.
@@ -49,4 +51,11 @@ func union(a, b map[string]int) []string {
 	}
 	slices.Sort(out)
 	return out
+}
+
+// Threshold is "a bit above the largest" PSI seen
+// across reviewed normal weeks: 20% above it, and
+// never below the 0.1 "look" rule of thumb.
+func Threshold(normalWeeks []float64) float64 {
+	return max(0.1, 1.2*slices.Max(append([]float64{0}, normalWeeks...)))
 }

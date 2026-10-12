@@ -22,3 +22,28 @@ func TestPick(t *testing.T) {
 		t.Fatalf("old = %+v", old)
 	}
 }
+
+func TestKeepChecksBothPhrases(t *testing.T) {
+	old := "July: retry budgets cap how often a client retries."
+	recent := "Carrier timeouts spike when the EDI gateway retries every second."
+	good := Link{Idea: "retries amplify load", OldPhrase: "retry  budgets", NewPhrase: "retries every second"}
+	if !Keep(good, old, recent) {
+		t.Fatal("real link dropped")
+	}
+	for name, l := range map[string]Link{
+		"invented old phrase": {OldPhrase: "retry storms", NewPhrase: "retries every second"},
+		"empty phrase":        {OldPhrase: "", NewPhrase: "retries every second"},
+		"no link":             {NoLink: true},
+	} {
+		if Keep(l, old, recent) {
+			t.Errorf("%s: kept", name)
+		}
+	}
+}
+
+func TestLineShowsCreatedDate(t *testing.T) {
+	n := Note{Path: "retry-budgets.md", Created: time.Date(2026, 7, 9, 0, 0, 0, 0, time.UTC)}
+	if got := Line(n, "retry budgets"); got != "retry-budgets.md (created 2026-07-09): retry budgets" {
+		t.Fatal(got)
+	}
+}

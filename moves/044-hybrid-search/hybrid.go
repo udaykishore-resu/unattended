@@ -15,8 +15,12 @@ import (
 func Fuse(k float64, lists ...[]string) []string {
 	score := map[string]float64{}
 	for _, list := range lists {
+		seen := map[string]bool{} // best rank only
 		for rank, id := range list {
-			score[id] += 1 / (k + float64(rank+1))
+			if !seen[id] {
+				seen[id] = true
+				score[id] += 1 / (k + float64(rank+1))
+			}
 		}
 	}
 	ids := slices.Collect(maps.Keys(score))

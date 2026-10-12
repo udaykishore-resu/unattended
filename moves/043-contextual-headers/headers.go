@@ -36,3 +36,21 @@ the document. Output only the sentences.`
 func IndexText(c Chunk, situated string) string {
 	return Header(c) + "\n" + situated + "\n" + c.Text
 }
+
+// CheckMeta rejects chunks whose fixed header would
+// carry missing or impossible metadata: no title, no
+// heading trail, or a reviewed date that is zero or
+// in the future. The fixed layer adds no invented
+// claims, but it is only as right as this metadata.
+func CheckMeta(c Chunk, now time.Time) error {
+	switch {
+	case strings.TrimSpace(c.DocTitle) == "":
+		return fmt.Errorf("chunk %s: no doc title", c.ID)
+	case len(c.Path) == 0:
+		return fmt.Errorf("chunk %s: no heading trail", c.ID)
+	case c.Updated.IsZero() || c.Updated.After(now):
+		return fmt.Errorf("chunk %s: bad reviewed date %s",
+			c.ID, c.Updated.Format("2006-01-02"))
+	}
+	return nil
+}

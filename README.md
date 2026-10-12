@@ -37,6 +37,8 @@ llm/                 the llm v2 client, exactly as in the book's front matter,
 moves/NNN-name/      one directory per move with Go code; NNN is the move number
 internal/sqlfake/    a tiny database/sql driver for tests (not in the book), so
                      moves that take a *sql.DB run without a database server
+internal/psqltest/   runs a move's SQL constants verbatim in a real Postgres via
+                     psql, for `-tags integration` tests (not in the book)
 adapters/            README only: how a vendor adapter maps onto llm v2
 python/              Python port of llm v2, FakeModel and five key moves
 ```
@@ -47,7 +49,7 @@ How a move directory maps to the book:
 - Where the book shows a fragment, the repo wraps it in the smallest function that runs it, and a comment marks where the book's code starts.
 - Where the book names a helper only in prose (`parse`, `clip`, `askScores`, `verify`, ...), the repo implements it minimally, and a comment says so.
 - Types the book describes in prose are defined next to the code. When one move uses another move's type (the `ToolError` from Move 32, the `Chunk` from Move 43), the directory carries a trimmed copy, so each move reads on its own. Move 83 imports Moves 56 and 89 for real, because its point is how those wrappers stack.
-- Each `*_test.go` demonstrates the claim in the move's text, using the book's Halcyon Freight numbers where it can. A few examples: Move 41's guard trips on the second identical call and ends the run on the third; Move 52's key stays the same across prompt versions, so a replay never resends an email; Move 89's budget charges every retry; Move 97's audit chain still verifies after a whole segment expires; Move 99 refuses absolute URLs and scrubs base64- and URL-encoded tokens.
+- Each `*_test.go` demonstrates the claim in the move's text, using the book's Halcyon Freight numbers where it can. A few examples: Move 41's guard trips on the second identical call and ends the run on the third; Move 52's key stays the same across prompt versions, so a replay of a finished step returns the saved result instead of resending; Move 89's budget charges every retry; Move 97's audit chain still verifies after a whole segment expires, and a failed audit write blocks the action; Move 98's two-key check refuses the same person twice, an author, or an edited proposal; Move 99 refuses absolute URLs and scrubs base64- and URL-encoded tokens.
 
 Moves without a directory are prompts, SQL, checklists or process: their text in the book is the whole example.
 
@@ -61,7 +63,7 @@ Moves without a directory are prompts, SQL, checklists or process: their text in
 | 2 | Time the task before you automate it | [`moves/002-time-the-task`](moves/002-time-the-task) |
 | 3 | Score tasks on frequency × pain × reversibility | [`moves/003-score-tasks`](moves/003-score-tasks) |
 | 4 | Automate the handoff, not the whole job | [`moves/004-automate-handoff`](moves/004-automate-handoff) |
-| 5 | Start from the exception queue, not the happy path | — (prompt, SQL or checklist in the book) |
+| 5 | Start from the exception queue, not the happy path | [`moves/005-exception-queue`](moves/005-exception-queue) (SQL; test runs it in Postgres via psql when `UNATTENDED_TEST_PSQL_URL` is set) |
 | 6 | Write the SOP first; the SOP becomes the prompt | — (prompt, SQL or checklist in the book) |
 | 7 | Design the kill switch before the feature | [`moves/007-kill-switch`](moves/007-kill-switch) |
 | 8 | Calculate break-even in tokens, not hours | [`moves/008-break-even`](moves/008-break-even) |
@@ -102,7 +104,7 @@ Moves without a directory are prompts, SQL, checklists or process: their text in
 | Move | Title | Code |
 |-----:|-------|------|
 | 30 | One tool, one verb | [`moves/030-one-tool-one-verb`](moves/030-one-tool-one-verb) |
-| 31 | Tool descriptions are prompts: write them for a new hire | — (prompt, SQL or checklist in the book) |
+| 31 | Tool descriptions are prompts: write them for a new hire | [`moves/031-tool-descriptions`](moves/031-tool-descriptions) |
 | 32 | Return errors the model can act on | [`moves/032-actionable-errors`](moves/032-actionable-errors) |
 | 33 | Reads run at once, writes wait for a yes | [`moves/033-gate-writes`](moves/033-gate-writes) |
 | 34 | Dry-run mode for every write tool | [`moves/034-dry-run`](moves/034-dry-run) |
@@ -132,15 +134,15 @@ Moves without a directory are prompts, SQL, checklists or process: their text in
 
 | Move | Title | Code |
 |-----:|-------|------|
-| 51 | Event-driven triggers over polling | [`moves/051-event-triggers`](moves/051-event-triggers) |
-| 52 | Idempotency keys on every AI step | [`moves/052-idempotency-keys`](moves/052-idempotency-keys) |
-| 53 | Durable execution for long workflows | [`moves/053-durable-execution`](moves/053-durable-execution) |
+| 51 | Event-driven triggers over polling | [`moves/051-event-triggers`](moves/051-event-triggers) (SQL also runs in Postgres via psql with `-tags integration` and `UNATTENDED_TEST_PSQL_URL`) |
+| 52 | Idempotency keys on every AI step | [`moves/052-idempotency-keys`](moves/052-idempotency-keys) (same; Python port too) |
+| 53 | Durable execution for long workflows | [`moves/053-durable-execution`](moves/053-durable-execution) (same) |
 | 54 | Queue plus bounded worker pool for batch jobs | [`moves/054-worker-pool`](moves/054-worker-pool) |
 | 55 | Batch APIs for anything that can wait | [`moves/055-batch-api`](moves/055-batch-api) |
 | 56 | Retries with jitter and a dead-letter queue humans read | [`moves/056-retry-dlq`](moves/056-retry-dlq) |
 | 57 | Response caching and prompt caching for shared prefixes | [`moves/057-caching`](moves/057-caching) |
 | 58 | Route by difficulty: small model first, escalate on low confidence | [`moves/058-difficulty-routing`](moves/058-difficulty-routing) |
-| 59 | Human-in-the-loop as a queue, not an email | — (prompt, SQL or checklist in the book) |
+| 59 | Human-in-the-loop as a queue, not an email | [`moves/059-review-queue`](moves/059-review-queue) (SQL; claim and decision races run in Postgres via psql with `-tags integration`) |
 | 60 | Scheduled agents that file a run report | [`moves/060-run-report`](moves/060-run-report) |
 
 ### Part VII — Engineering & DevOps Automation
@@ -180,11 +182,11 @@ Moves without a directory are prompts, SQL, checklists or process: their text in
 | Move | Title | Code |
 |-----:|-------|------|
 | 83 | Trace every call: prompt version, model, tokens, latency, outcome | [`moves/083-trace-every-call`](moves/083-trace-every-call) |
-| 84 | LLM-as-judge with a rubric, and an eval for the judge | — (prompt, SQL or checklist in the book) |
+| 84 | LLM-as-judge with a rubric, and an eval for the judge | [`moves/084-llm-judge`](moves/084-llm-judge) |
 | 85 | Prompt regression suite in CI | [`moves/085-regression-suite`](moves/085-regression-suite) |
 | 86 | Shadow mode before cutover | [`moves/086-shadow-mode`](moves/086-shadow-mode) |
 | 87 | Track human acceptance rate, not only accuracy | [`moves/087-acceptance-rate`](moves/087-acceptance-rate) |
-| 88 | Cost per successful outcome, not cost per call | — (prompt, SQL or checklist in the book) |
+| 88 | Cost per successful outcome, not cost per call | [`moves/088-cost-per-outcome`](moves/088-cost-per-outcome) (SQL; test needs Postgres via `UNATTENDED_TEST_PSQL_URL`) |
 | 89 | Token budgets per workflow and per tenant | [`moves/089-token-budgets`](moves/089-token-budgets) |
 | 90 | Drift alarms on output distributions | [`moves/090-drift-alarms`](moves/090-drift-alarms) |
 | 91 | Sample a slice for human review, forever | [`moves/091-review-sampling`](moves/091-review-sampling) |
@@ -201,13 +203,13 @@ Moves without a directory are prompts, SQL, checklists or process: their text in
 | 97 | Audit-log every agent action | [`moves/097-audit-log`](moves/097-audit-log) |
 | 98 | Approval tiers by blast radius | [`moves/098-approval-tiers`](moves/098-approval-tiers) |
 | 99 | Secrets never enter the context window | [`moves/099-secrets`](moves/099-secrets) |
-| 100 | Write the "how this automation fails" page before launch | — (prompt, SQL or checklist in the book) |
+| 100 | Write the "how this automation fails" page before launch | [`moves/100-failure-page`](moves/100-failure-page) (the CI check the move describes; the page template is in the book) |
 
 ### Part XI — Capstone
 
 | Move | Title | Code |
 |-----:|-------|------|
-| 101 | From SOP to production: one automation, end to end | — (prompt, SQL or checklist in the book) |
+| 101 | From SOP to production: one automation, end to end | [`moves/101-capstone`](moves/101-capstone): the prompt's rules enforced in Go, and the failure policy |
 
 ## Python port
 

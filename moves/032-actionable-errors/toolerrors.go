@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
+	"time"
 
 	"github.com/udaykishore-resu/unattended/llm"
 )
@@ -27,13 +29,14 @@ func (e *ToolError) Error() string {
 
 func toolResult(out string, err error) string {
 	var te *ToolError
-	if err == nil {
+	switch {
+	case err == nil:
 		return out
-	}
-	if errors.As(err, &te) {
-		b, _ := json.Marshal(te)
+	case errors.As(err, &te):
+		b, _ := json.Marshal(te) // strings, a bool
 		return string(b)
 	}
+	slog.Error("tool failed", "err", err) // ours only
 	return `{"code":"internal","retry":false,` +
 		`"fix":"do not retry; report it and stop"}`
 }
@@ -67,4 +70,31 @@ func Loop(ctx context.Context, m llm.Model,
 		}
 	}
 	return "", errors.New("step cap reached")
+}
+
+// Retrying runs a call again while it fails with a
+// ToolError marked Retry, at most tries times in
+// all, with doubling waits, and never past ctx's
+// deadline (the run's wall clock, Move 35). Then
+// the model sees the last error. Retry: true means
+// "the same call may work later", not "loop".
+// Wrap the executor with it: Retrying(ex.Do, 3, base).
+func Retrying(run RunFunc, tries int,
+	base time.Duration) RunFunc {
+	return func(ctx context.Context,
+		c llm.ToolCall) (string, error) {
+		var te *ToolError
+		for i := 1; ; i++ {
+			out, err := run(ctx, c)
+			if i >= tries || !errors.As(err, &te) ||
+				!te.Retry {
+				return out, err
+			}
+			select {
+			case <-ctx.Done():
+				return "", context.Cause(ctx)
+			case <-time.After(base << (i - 1)):
+			}
+		}
+	}
 }

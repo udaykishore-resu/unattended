@@ -11,6 +11,13 @@ import (
 	"strings"
 )
 
+// notesLog is bound at startup to the store that
+// already holds raw inputs, with that store's access
+// list and retention. Notes quote customer text, so
+// they never go to the general log pipeline. Named
+// only in prose; it discards until bound.
+var notesLog = slog.New(slog.DiscardHandler)
+
 const maxNotes = 600 // bytes; strict mode may not cap it
 
 // Verdict is what the model returns.
@@ -32,7 +39,7 @@ func decide(raw []byte, trace string) (Decision, error) {
 		n := v.Notes[:maxNotes]
 		v.Notes = strings.ToValidUTF8(n, "")
 	}
-	slog.Debug("llm notes",
+	notesLog.Debug("llm notes",
 		"trace", trace, "notes", v.Notes)
 	return Decision{v.Category, v.LoadID}, nil
 }

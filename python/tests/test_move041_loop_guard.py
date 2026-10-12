@@ -27,3 +27,19 @@ def test_different_args_pass():
     g = LoopGuard()
     for i in range(3):
         g.check(ToolCall(str(i), "get_load", f'{{"load_id":"HF-{i}"}}'))
+
+
+def test_third_identical_call_ends_the_run_with_clear_message():
+    g = LoopGuard()
+    c = ToolCall("c1", "get_load", '{"load_id":"HF-1"}')
+    g.check(c)
+    with pytest.raises(ToolError):
+        g.check(c)
+    with pytest.raises(LoopError, match="third identical call"):
+        g.check(c)
+
+
+def test_big_numbers_stay_distinct():
+    g = LoopGuard()
+    g.check(ToolCall("a", "get_load", '{"pro":12345678901234567}'))
+    g.check(ToolCall("b", "get_load", '{"pro":12345678901234568}'))

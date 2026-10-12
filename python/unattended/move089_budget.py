@@ -15,12 +15,15 @@ from typing import Callable
 from .llm import Model, Request, Response, Usage
 
 
-class BudgetError(Exception):
-    """The key has no limit, or the worst case won't fit."""
-
-
 class Permanent(Exception):
     """Move 56: wraps errors no retry can fix."""
+
+
+class BudgetError(Permanent):
+    """The key has no limit, or the worst case won't fit.
+
+    A Permanent by construction, so the retry layer stops at once.
+    """
 
 
 def total(u: Usage) -> int:
@@ -65,7 +68,9 @@ class Budgeted:
         got = worst  # exception or no usage: assume spent
         try:
             resp = self.next.complete(r)
-            got = total(resp.usage)
+            n = total(resp.usage)
+            if n > 0:  # zero is "unknown", not "free"
+                got = n
             return resp
         except Exception as e:
             n = total(getattr(e, "usage", Usage()))

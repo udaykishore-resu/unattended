@@ -5,26 +5,45 @@
 // twice. The first repeat (the second identical
 // call) gets a ToolError; the second repeat (the
 // third identical call) ends the run with ErrLoop.
+//
+// key is the tool name plus its arguments,
+// re-encoded so key order and spacing don't count.
 package loopguard
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"sync"
 
 	"github.com/udaykishore-resu/unattended/llm"
 )
 
-var ErrLoop = errors.New("loop: same call 3 times")
+var ErrLoop = errors.New("loop: third identical call")
 
-type LoopGuard struct{ seen map[string]int }
+func key(c llm.ToolCall) (string, error) {
+	d := json.NewDecoder(bytes.NewReader(c.Input))
+	d.UseNumber() // big numeric IDs stay exact
+	var v any
+	if d.Decode(&v) != nil {
+		v = string(c.Input) // not JSON: raw text
+	}
+	b, err := json.Marshal(v) // map keys sorted
+	return c.Name + "\x00" + string(b), err
+}
+
+type LoopGuard struct {
+	mu   sync.Mutex
+	seen map[string]int
+}
 
 func (g *LoopGuard) Check(c llm.ToolCall) error {
-	var v any
-	if json.Unmarshal(c.Input, &v) != nil {
-		v = string(c.Input)
+	k, err := key(c)
+	if err != nil {
+		return err // can't key it: end the run
 	}
-	b, _ := json.Marshal(v) // map keys sorted
-	k := c.Name + "\x00" + string(b)
+	g.mu.Lock()
+	defer g.mu.Unlock()
 	if g.seen == nil {
 		g.seen = map[string]int{}
 	}

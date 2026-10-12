@@ -21,7 +21,12 @@ func Load(name string) (Prompt, error) {
 	if err != nil {
 		return Prompt{}, err
 	}
+	return Prompt{name, string(b), Hash(b)}, nil
+}
+
+// Hash is the full SHA-256 of the exact bytes:
+// a template file, or a rendered prompt as sent.
+func Hash(b []byte) string {
 	sum := sha256.Sum256(b)
-	v := hex.EncodeToString(sum[:6])
-	return Prompt{name, string(b), v}, nil
+	return hex.EncodeToString(sum[:])
 }

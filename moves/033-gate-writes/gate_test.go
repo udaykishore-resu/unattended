@@ -72,3 +72,22 @@ func TestUnknownTool(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 }
+
+type downQueue struct{}
+
+func (downQueue) Propose(context.Context, Proposal) (string, error) {
+	return "", errors.New("queue unavailable")
+}
+
+// The queue is down: Propose fails, the write does
+// not run, and the error goes back (as Move 32's
+// fixed "do not retry; report it and stop").
+func TestQueueDownWriteDoesNotRun(t *testing.T) {
+	writes := 0
+	e, _ := newExec(&writes)
+	e.Queue = downQueue{}
+	out, err := e.Do(context.Background(), llm.ToolCall{ID: "c1", Name: "set_status"})
+	if err == nil || out != "" || writes != 0 {
+		t.Fatalf("out=%q err=%v writes=%d", out, err, writes)
+	}
+}

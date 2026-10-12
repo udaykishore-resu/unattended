@@ -5,16 +5,19 @@
 package allowlist
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"slices"
+
+	"github.com/udaykishore-resu/unattended/llm"
 )
 
 type Check func(in json.RawMessage) error
 
 // Allowed is the whole list. Absent means denied.
 var Allowed = map[string]Check{
-	"get_shipment": nil, // read-only, any args
+	"get_shipment": nil, // no arg check; authz in tool
 	"add_note":     maxLen("text", 2000),
 	"set_status": oneOf("status",
 		"in_transit", "delivered", "delayed"),
@@ -71,4 +74,29 @@ func maxLen(name string, n int) Check {
 		}
 		return nil
 	}
+}
+
+// Tool is a handler the executor may run.
+type Tool func(ctx context.Context,
+	in json.RawMessage) (string, error)
+
+// Executor is the one path from a ToolCall to a
+// handler. Tools may come from code, plugins or an
+// MCP server; registering one does not allow it.
+type Executor struct {
+	Tools map[string]Tool
+}
+
+// Do runs Gate first. A denial or a check error,
+// such as a timeout, never reaches the handler.
+func (e *Executor) Do(ctx context.Context,
+	c llm.ToolCall) (string, error) {
+	if err := Gate(c.Name, c.Input); err != nil {
+		return "", fmt.Errorf("denied: %w", err)
+	}
+	run, ok := e.Tools[c.Name]
+	if !ok {
+		return "", fmt.Errorf("tool %q not found", c.Name)
+	}
+	return run(ctx, c.Input)
 }

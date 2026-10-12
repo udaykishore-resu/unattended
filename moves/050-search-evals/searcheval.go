@@ -5,7 +5,10 @@
 // logs.
 package searcheval
 
-import "slices"
+import (
+	"errors"
+	"slices"
+)
 
 // A Case holds a Query and Want, the doc IDs that
 // answer it.
@@ -14,22 +17,28 @@ type Case struct {
 	Want  []string
 }
 
-// Score returns recall@k and MRR for a search
-// function that returns ranked doc IDs.
+// Score returns recall@k and MRR. search returns one
+// doc ID per result slot, best first.
 func Score(k int, cases []Case,
-	search func(string) []string) (rec, mrr float64) {
+	search func(string) []string,
+) (rec, mrr float64, err error) {
+	if len(cases) == 0 {
+		return 0, 0, errors.New("empty eval set")
+	}
 	for _, c := range cases {
-		for i, id := range search(c.Query) {
-			if !slices.Contains(c.Want, id) {
-				continue
-			}
-			if i < k {
-				rec++
-			}
-			mrr += 1 / float64(i+1)
-			break
+		// First slot holding any wanted doc.
+		i := slices.IndexFunc(search(c.Query),
+			func(id string) bool {
+				return slices.Contains(c.Want, id)
+			})
+		if i < 0 {
+			continue // a miss scores 0
 		}
+		if i < k {
+			rec++ // once per query
+		}
+		mrr += 1 / float64(i+1)
 	}
 	n := float64(len(cases))
-	return rec / n, mrr / n
+	return rec / n, mrr / n, nil
 }

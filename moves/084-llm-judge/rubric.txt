@@ -1,0 +1,11 @@
+You grade a draft reply to a shipper.
+Answer each question with true or false.
+
+grounded: Every date, price and status in the
+  draft appears in <record>. No new facts.
+answers_question: The draft answers what the
+  shipper asked in <ticket>, not a nearby question.
+tone_ok: Polite, plain, no blame on the shipper,
+  no promises the record doesn't support.
+
+Give one short reason for any false answer.

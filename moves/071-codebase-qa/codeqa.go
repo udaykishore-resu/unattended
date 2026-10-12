@@ -35,6 +35,23 @@ type Chunk struct {
 	Path, Commit string
 	Start, End   int // line range
 	Text         string
+	Group        string // repo access group
+}
+
+// Visible keeps only chunks from repos the asker can
+// read. It runs on retrieval results before the model
+// sees them, and Check runs on its output, so an
+// answer can't cite a chunk the asker can't open,
+// whatever the bot's own token can read. Described in
+// prose; minimal.
+func Visible(cs []Chunk, asker map[string]bool) []Chunk {
+	var out []Chunk
+	for _, c := range cs {
+		if asker[c.Group] {
+			out = append(out, c)
+		}
+	}
+	return out
 }
 
 // covered checks that some retrieved chunk has that

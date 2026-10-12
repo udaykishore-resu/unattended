@@ -92,3 +92,23 @@ def test_concurrent_reservations_stay_inside_the_limit():
 
 def test_total_counts_cache():
     assert total(Usage(1, 2, 3, 4)) == 10
+
+
+def test_zero_usage_on_success_keeps_worst_case():
+    ledger = Ledger({"triage/acme": 100_000})
+    budgeted(Flaky(), ledger).complete(Request(max_tokens=500))
+    assert ledger.used["triage/acme"] == WORST
+
+
+def test_refusal_is_permanent_without_rewrapping():
+    m = budgeted(Flaky(), Ledger({"triage/acme": 1}))
+    tries = 0
+
+    def once():
+        nonlocal tries
+        tries += 1
+        return m.complete(Request(max_tokens=500))
+
+    with pytest.raises(BudgetError):
+        retry(once, tries=3, base=0.001, ceil=0.001)
+    assert tries == 1

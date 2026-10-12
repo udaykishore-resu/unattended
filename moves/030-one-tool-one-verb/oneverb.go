@@ -6,6 +6,8 @@ package oneverb
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 
 	"github.com/udaykishore-resu/unattended/llm"
 )
@@ -28,7 +30,10 @@ var setPickupWindow = llm.Tool{
 }
 
 // Tools is this agent's whole list. There is no
-// cancel_load here, so the agent cannot cancel.
+// cancel_load here. The schema only shapes the call:
+// what stops a cancel is the executor, which refuses
+// any tool not in its registry (Move 33), and the
+// database role (Move 40).
 var Tools = []llm.Tool{
 	setPickupWindow,
 	{Name: "get_load", Description: "Look up one load by load ID.",
@@ -45,4 +50,22 @@ var Tools = []llm.Tool{
 var Verbs = map[string]bool{
 	"get": true, "find": true, "set": true,
 	"add": true, "mark": true, "cancel": true,
+}
+
+// CheckName is the CI rule: split the name at the
+// first underscore; the part before it must be a
+// verb from the list and something must follow it.
+// A two-word verb such as "check_in_driver" splits
+// as "check", so give it one token ("checkin") or
+// add it to the list by pull request.
+func CheckName(name string) error {
+	verb, noun, ok := strings.Cut(name, "_")
+	switch {
+	case !ok || noun == "":
+		return fmt.Errorf("%q: want verb_noun", name)
+	case !Verbs[verb]:
+		return fmt.Errorf("%q: %q is not on the verb list",
+			name, verb)
+	}
+	return nil
 }

@@ -26,6 +26,10 @@ func (s *src) Deploys(_ context.Context, _ string, since time.Time) ([]Deploy, e
 	return s.deploys, nil
 }
 
+func (s *src) Note(context.Context, Enriched) (string, error) {
+	return "step 2 applies; deploy changed pool size, possibly related", nil
+}
+
 var fired = time.Date(2026, 3, 9, 2, 14, 0, 0, time.UTC)
 
 func TestEnrich(t *testing.T) {

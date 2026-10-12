@@ -32,6 +32,14 @@ def test_copies_history():
     assert len(f.calls[0].messages) == 1
 
 
+def test_copies_history_deep():
+    f = FakeModel(responses=[Response()])
+    req = Request(messages=[Message("user", "hi")])
+    f.complete(req)
+    req.messages[0].content = "changed"  # in-place edit after the call
+    assert f.calls[0].messages[0].content == "hi"
+
+
 def test_err():
     f = FakeModel(err=TimeoutError("boom"))
     with pytest.raises(TimeoutError):

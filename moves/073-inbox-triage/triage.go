@@ -8,6 +8,7 @@ package triage
 import (
 	"context"
 	"encoding/json"
+	"strings"
 
 	"github.com/udaykishore-resu/unattended/llm"
 )
@@ -61,11 +62,14 @@ type verdict struct {
 
 // PreFilter is the header rule that runs before the
 // model: Auto-Submitted or List-Unsubscribe means
-// bulk, unless the sender is on the allow-list.
+// bulk, unless the sender's address or its domain is
+// on the allow-list (customer domains from the CRM).
 // Described in prose; minimal.
 func PreFilter(hdr map[string]string, from string,
 	allow map[string]bool) (string, bool) {
-	if allow[from] {
+	addr := strings.ToLower(strings.TrimSpace(from))
+	_, domain, _ := strings.Cut(addr, "@")
+	if allow[addr] || (domain != "" && allow[domain]) {
 		return "", false
 	}
 	if hdr["Auto-Submitted"] != "" ||

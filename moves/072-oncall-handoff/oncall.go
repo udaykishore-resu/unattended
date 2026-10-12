@@ -1,6 +1,8 @@
 // Package oncall lists every silence or override
-// that ends during the next shift. Computed in code,
-// never by the model.
+// that ends during the next shift: after from, up to
+// and including the next handoff. Back-to-back
+// windows then cover every end time exactly once.
+// Computed in code, never by the model.
 //
 // Move 72: on-call handoff summaries.
 package oncall
@@ -23,7 +25,7 @@ func ExpiringSoon(ss []Silence, from time.Time,
 	until := from.Add(shift)
 	for _, s := range ss {
 		if s.Ends.After(from) &&
-			s.Ends.Before(until) {
+			!s.Ends.After(until) {
 			out = append(out, s)
 		}
 	}

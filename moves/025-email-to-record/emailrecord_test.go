@@ -32,3 +32,16 @@ func TestKeepsLinesThatOnlyLookLikeHeaders(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+// newText is a starting heuristic, not a quote parser.
+// This documents its known false positive: a new line
+// that happens to read "On ... wrote:" cuts real text.
+// Shadow mode and the logged first line of each
+// stripped block (Move 25, Breaks when) are how you
+// find these.
+func TestKnownFalsePositive(t *testing.T) {
+	body := "Rate is fine.\nOn Friday the driver wrote:\nDock 4 only.\n"
+	if got := newText(body); got != "Rate is fine.\n" {
+		t.Fatalf("heuristic changed; update the book: %q", got)
+	}
+}

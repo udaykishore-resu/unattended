@@ -6,7 +6,12 @@
 // against policy.
 package planreview
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
+)
 
 type Change struct {
 	Address string
@@ -64,4 +69,47 @@ func ResourceChanges(plan []byte) ([]Change, error) {
 	}
 	err := json.Unmarshal(plan, &p)
 	return p.ResourceChanges, err
+}
+
+// Finding is one policy-engine result, pass or fail.
+type Finding struct {
+	Rule, Address string
+	Pass          bool
+}
+
+// ErrNoPlan: the check fails when a stack has no plan.
+// A review of source manifests alone can't show what
+// will change, so the model never gets one.
+var ErrNoPlan = errors.New("planreview: plan missing")
+
+// Input builds what the model reads: the policy in
+// plain English, the engine's results, and the
+// trimmed, masked changes. Described in prose;
+// minimal implementation.
+func Input(policy string, plan []byte, fs []Finding) (string, error) {
+	var head struct {
+		FormatVersion string `json:"format_version"`
+	}
+	if len(plan) == 0 || json.Unmarshal(plan, &head) != nil || head.FormatVersion == "" {
+		return "", ErrNoPlan
+	}
+	cs, err := ResourceChanges(plan)
+	if err != nil {
+		return "", err
+	}
+	changes, err := json.Marshal(Trim(cs))
+	if err != nil {
+		return "", err
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "<policy>\n%s\n</policy>\n<engine>\n", policy)
+	for _, f := range fs {
+		verdict := "FAIL"
+		if f.Pass {
+			verdict = "pass"
+		}
+		fmt.Fprintf(&b, "%s %s %s\n", verdict, f.Rule, f.Address)
+	}
+	fmt.Fprintf(&b, "</engine>\n<changes>\n%s\n</changes>\n", changes)
+	return b.String(), nil
 }

@@ -6,6 +6,8 @@ package dedup
 
 import (
 	"math"
+	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -14,6 +16,7 @@ import (
 type Load struct {
 	ShipperID, Pickup  string
 	OriginZip, DestZip string
+	Trucks             int
 	Embedding          []float64
 }
 
@@ -26,14 +29,20 @@ const (
 	Duplicate
 )
 
-func ExactKey(l Load) string {
-	return strings.Join([]string{
-		l.ShipperID, l.Pickup,
-		l.OriginZip, l.DestZip}, "|")
+func ExactKey(l Load) (string, bool) {
+	p := []string{l.ShipperID, l.Pickup,
+		l.OriginZip, l.DestZip}
+	if slices.Contains(p, "") || l.Trucks < 1 {
+		return "", false // no key: blanks never match
+	}
+	p = append(p, strconv.Itoa(l.Trucks))
+	return strings.Join(p, "|"), true
 }
 
 func Classify(a, b Load, near float64) Match {
-	sameKey := ExactKey(a) == ExactKey(b)
+	ka, okA := ExactKey(a)
+	kb, okB := ExactKey(b)
+	sameKey := okA && okB && ka == kb
 	sim := cosine(a.Embedding, b.Embedding)
 	switch {
 	case sameKey && sim >= near:

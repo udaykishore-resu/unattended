@@ -54,3 +54,21 @@ func TestHeaderRuleAndAllowList(t *testing.T) {
 		t.Fatal("allow-listed sender must reach the model")
 	}
 }
+
+// The fix after the Acme incident: CRM customer
+// domains, not single addresses, skip the header rule.
+func TestCustomerDomainSkipsHeaderRule(t *testing.T) {
+	hdr := map[string]string{"List-Unsubscribe": "<mailto:u@acme.test>"}
+	allow := map[string]bool{"acme.test": true}
+	for _, from := range []string{"billing@acme.test", "AP@Acme.test"} {
+		if _, ok := PreFilter(hdr, from, allow); ok {
+			t.Errorf("%s: customer domain must reach the model", from)
+		}
+	}
+	if l, ok := PreFilter(hdr, "news@vendor.test", allow); !ok || l != Bulk {
+		t.Error("other senders with the header still go to bulk")
+	}
+	if _, ok := PreFilter(map[string]string{}, "news@vendor.test", allow); ok {
+		t.Error("no header: the model decides")
+	}
+}

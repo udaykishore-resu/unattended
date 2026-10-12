@@ -2,26 +2,47 @@ package oneverb
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 )
 
-// The CI test from the book: split each name at the
-// first underscore and check the verb.
+// The CI test from the book, run over every tool
+// this agent registers.
 func TestToolNamesAreVerbNoun(t *testing.T) {
 	for _, tool := range Tools {
-		verb, noun, ok := strings.Cut(tool.Name, "_")
-		if !ok || noun == "" || !Verbs[verb] {
-			t.Errorf("tool %q is not verb_noun from the list", tool.Name)
+		if err := CheckName(tool.Name); err != nil {
+			t.Error(err)
 		}
-	}
-	if Verbs[strings.SplitN("manage_load", "_", 2)[0]] {
-		t.Error("manage is a mode switch, not a verb")
 	}
 }
 
-// The schema is the permission: no status, rate or
-// carrier field, and unknown keys are rejected.
+// How the first-underscore split treats awkward
+// names, including compound verbs.
+func TestCheckNameCases(t *testing.T) {
+	cases := []struct {
+		name string
+		ok   bool
+	}{
+		{"set_pickup_window", true}, // noun may hold underscores
+		{"find_load_by_ref", true},
+		{"cancel_load", true},              // a fine name; this agent just doesn't hold it
+		{"manage_load", false},             // mode switch, not a verb
+		{"update_delivery_windows", false}, // not on the list
+		{"check_in_driver", false},         // compound verb splits as "check"
+		{"getload", false},                 // no underscore
+		{"get_", false},                    // no noun
+		{"_load", false},                   // no verb
+		{"Get_load", false},                // case matters
+	}
+	for _, c := range cases {
+		if err := CheckName(c.name); (err == nil) != c.ok {
+			t.Errorf("CheckName(%q) = %v, want ok=%v", c.name, err, c.ok)
+		}
+	}
+}
+
+// The schema shapes the call: no status, rate or
+// carrier field, and unknown keys are not allowed.
+// It is not the permission; see Move 33's executor.
 func TestNarrowSchema(t *testing.T) {
 	var s struct {
 		AdditionalProperties *bool          `json:"additionalProperties"`

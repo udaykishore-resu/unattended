@@ -84,8 +84,8 @@ class NoResponsesError(Exception):
 
 @dataclass
 class FakeModel:
-    """Replays canned responses in order and records a copy of every
-    request it sees. Running out of responses is an error on purpose."""
+    """Replays canned responses in order and records every request
+    with a deep copy of its history. Running out of responses is an error on purpose."""
 
     responses: list[Response] = field(default_factory=list)
     err: Optional[Exception] = None
@@ -94,9 +94,10 @@ class FakeModel:
 
     def complete(self, r: Request) -> Response:
         with self._mu:
-            # Copy: an agent loop appends to messages.
+            # Copy: an agent loop appends to messages. Deep, as
+            # in Go, so in-place edits by the caller do not leak.
             rec = copy.copy(r)
-            rec.messages = list(r.messages)
+            rec.messages = copy.deepcopy(r.messages)
             self.calls.append(rec)
             if self.err is not None:
                 raise self.err

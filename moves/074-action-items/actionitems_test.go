@@ -18,6 +18,9 @@ func TestCheck(t *testing.T) {
 		{Item{Owner: "Priya", Quote: "I'll fix the dock schedule"}, "owner not on roster"},
 		// Paraphrased: not what was said.
 		{Item{Owner: "Dana", Quote: "Dana will own the dock schedule"}, "quote not found in notes"},
+		// An empty quote is contained in every string; it must not pass.
+		{Item{Owner: "Theo", Quote: ""}, "no quote"},
+		{Item{Owner: "Theo", Quote: " \n "}, "no quote"},
 	}
 	for _, c := range cases {
 		if got := Check(c.it, roster, notes); got != c.want {

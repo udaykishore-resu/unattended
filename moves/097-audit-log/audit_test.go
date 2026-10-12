@@ -13,7 +13,7 @@ import (
 func write(t *testing.T) (string, map[string]string) {
 	t.Helper()
 	var buf bytes.Buffer
-	l := NewLog(&buf)
+	l := NewLog(&buf, "billing-7f9c", nil)
 	for _, e := range []Entry{
 		{Class: "invoice-7y", RunID: "r1", Agent: "billing-agent:1.4.2",
 			Tool: "set_amount", Input: "invoice:40117", Result: "pending"},

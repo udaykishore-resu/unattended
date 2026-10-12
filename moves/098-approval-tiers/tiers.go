@@ -11,7 +11,6 @@ type Action struct {
 	Reversible bool
 }
 
-// TierFor scores blast radius, not tool name.
 func TierFor(a Action) Tier {
 	switch {
 	case a.Cents > 500_000: // over $5,000

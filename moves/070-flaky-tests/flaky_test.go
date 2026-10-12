@@ -8,16 +8,16 @@ import (
 func TestFlaky(t *testing.T) {
 	runs := []Run{
 		// Same code, two outcomes, on two commits.
-		{"TestAssignLoad_Concurrent", "a1", true},
-		{"TestAssignLoad_Concurrent", "a1", false},
-		{"TestAssignLoad_Concurrent", "b2", false},
-		{"TestAssignLoad_Concurrent", "b2", true},
+		{Test: "TestAssignLoad_Concurrent", SHA: "a1", Passed: true},
+		{Test: "TestAssignLoad_Concurrent", SHA: "a1", Passed: false},
+		{Test: "TestAssignLoad_Concurrent", SHA: "b2", Passed: false},
+		{Test: "TestAssignLoad_Concurrent", SHA: "b2", Passed: true},
 		// Broken on one commit, fixed on the next: not flaky.
-		{"TestQuoteTotal", "a1", false},
-		{"TestQuoteTotal", "b2", true},
+		{Test: "TestQuoteTotal", SHA: "a1", Passed: false},
+		{Test: "TestQuoteTotal", SHA: "b2", Passed: true},
 		// Always green.
-		{"TestHealthz", "a1", true},
-		{"TestHealthz", "a1", true},
+		{Test: "TestHealthz", SHA: "a1", Passed: true},
+		{Test: "TestHealthz", SHA: "a1", Passed: true},
 	}
 	want := map[string]int{"TestAssignLoad_Concurrent": 2}
 	if got := Flaky(runs); !maps.Equal(got, want) {

@@ -6,7 +6,10 @@
 // accuracy.
 package acceptance
 
-import "strings"
+import (
+	"log/slog"
+	"strings"
+)
 
 type Fate string
 
@@ -53,4 +56,14 @@ func overlap(draft, sent string) float64 {
 		}
 	}
 	return float64(from) / float64(len(words))
+}
+
+// OnSend is what the send tool calls with the body it
+// is about to send: the final text, not a saved draft.
+// It classifies and logs the fate as Move 83's outcome
+// event on the draft's call ID.
+func OnSend(log *slog.Logger, callID, draft, body string) Fate {
+	f := Classify(draft, body, true)
+	log.Info("llm.outcome", "call_id", callID, "fate", string(f))
+	return f
 }

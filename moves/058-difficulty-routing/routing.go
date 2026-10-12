@@ -25,7 +25,7 @@ func (rt Router) Classify(ctx context.Context,
 	if err == nil && rt.accept(l, src) {
 		return l, "large", nil
 	}
-	return l, "human", rt.Review.Add(ctx, req, src)
+	return Label{}, "human", rt.Review.Add(ctx, req, src)
 }
 
 func (rt Router) accept(l Label, src string) bool {
@@ -67,7 +67,10 @@ func ask(ctx context.Context, m llm.Model,
 	return l, err
 }
 
-// grounded is the evidence check from Move 23.
+// grounded is the evidence check from Move 23: the
+// quote, after folding case and runs of spaces, must
+// appear in this ticket's text. It proves the quote
+// exists, not that the label is right.
 func grounded(src, evidence string) bool {
 	norm := func(s string) string {
 		return strings.Join(strings.Fields(strings.ToLower(s)), " ")
