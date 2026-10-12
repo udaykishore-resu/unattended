@@ -1,0 +1,12 @@
+# Weekly pull requests for action updates; the Go module has no
+# third-party dependencies and the Python port needs only pytest.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly

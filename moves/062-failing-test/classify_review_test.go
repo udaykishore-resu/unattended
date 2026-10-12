@@ -4,7 +4,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"testing"
 )
 
@@ -20,11 +19,9 @@ func goTestJSON(t *testing.T, files map[string]string) []byte {
 			t.Fatal(err)
 		}
 	}
-	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	if _, err := os.Stat(goBin); err != nil {
-		if goBin, err = exec.LookPath("go"); err != nil {
-			t.Skip("go tool not found")
-		}
+	goBin, err := exec.LookPath("go")
+	if err != nil {
+		t.Skip("go tool not found")
 	}
 	cmd := exec.Command(goBin, "test", "-json", "-count=1",
 		"-run", "^"+name+"$", ".")

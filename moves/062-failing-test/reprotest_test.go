@@ -4,7 +4,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"testing"
 )
 
@@ -68,11 +67,9 @@ func TestRealGoTestJSON(t *testing.T) {
 		"func "+name+"(t *testing.T) {\n"+
 		"\tif got := Total(2); got != 412500 {\n"+
 		"\t\tt.Fatalf(\"BUG-4127: total = %d, want 412500\", got)\n\t}\n}\n")
-	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	if _, err := os.Stat(goBin); err != nil {
-		if goBin, err = exec.LookPath("go"); err != nil {
-			t.Skip("go tool not found")
-		}
+	goBin, err := exec.LookPath("go")
+	if err != nil {
+		t.Skip("go tool not found")
 	}
 	cmd := exec.Command(goBin, "test", "-json", "-count=1", ".")
 	cmd.Dir = dir

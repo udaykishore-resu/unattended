@@ -38,7 +38,7 @@ func TestUnicodeWhitespace(t *testing.T) {
 	if !grounded(src, "weight is 42,000 lbs.") {
 		t.Fatal("NBSP/thin space/tab should fold")
 	}
-	if grounded("Weight is 42,​000 lbs.", "Weight is 42,000 lbs.") {
+	if grounded("Weight is 42,\u200b000 lbs.", "Weight is 42,000 lbs.") {
 		t.Fatal("zero-width space must not match")
 	}
 	// Curly vs straight apostrophe: no match, review.

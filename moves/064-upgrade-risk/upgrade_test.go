@@ -4,7 +4,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"testing"
 )
@@ -83,8 +82,8 @@ func TestImportersFromGoList(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	goBin := filepath.Join(runtime.GOROOT(), "bin", "go")
-	if _, err := os.Stat(goBin); err != nil {
+	goBin, err := exec.LookPath("go")
+	if err != nil {
 		t.Skip("go tool not found")
 	}
 	cmd := exec.Command(goBin, "list", "-json", "./...")

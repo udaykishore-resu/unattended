@@ -32,7 +32,8 @@ func TestRatesPerStratum(t *testing.T) {
 func TestDeterministic(t *testing.T) {
 	for i := range 100 {
 		id := fmt.Sprintf("e-%d", i)
-		if Pick(id, "other", "s") != Pick(id, "other", "s") {
+		first, again := Pick(id, "other", "s"), Pick(id, "other", "s")
+		if first != again {
 			t.Fatal("same id, different answer")
 		}
 	}
